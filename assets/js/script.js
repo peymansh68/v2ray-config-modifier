@@ -89,13 +89,20 @@ function incrementIP(ip) {
 
 function isValidConfigFormat(inputConfig) {
     if (inputConfig.startsWith('vmess://')) {
+        // Check for 'vmess' format
         return true;
     } else if (inputConfig.startsWith('vless://')) {
+        // Check for 'vless' format
         const regex = /vless:\/\/[^@]+@[^:]+:.+/;
+        return regex.test(inputConfig);
+    } else if (inputConfig.startsWith('trojan://')) {
+        // Check for 'trojan' format
+        const regex = /trojan:\/\/[^@]+@[^:]+:.+/;
         return regex.test(inputConfig);
     }
     return false;
 }
+
 
 function generateConfigs() {
     const inputType = document.getElementById('inputType').value;
@@ -189,6 +196,8 @@ function modifyConfigsFromList() {
 
 function replaceIPInConfig(inputConfig, ip) {
     let isVmess = inputConfig.startsWith('vmess://');
+    let isVless = inputConfig.startsWith('vless://');
+    let isTrojan = inputConfig.startsWith('trojan://');
     let ipStr = ip.toString();
     let result = '';
 
@@ -196,15 +205,25 @@ function replaceIPInConfig(inputConfig, ip) {
         let vmessConfig = JSON.parse(Base64.decode(inputConfig.replace('vmess://', '')));
         vmessConfig.add = ipStr;
         result = `vmess://${Base64.encode(JSON.stringify(vmessConfig))}\n\n`;
-    } else {
+    } else if (isVless) {
         ipStr = ip.kind() === 'ipv6' ? `[${ipStr}]` : ipStr;
         const match = inputConfig.match(/^(vless:\/\/[^@]+)@([^:]+)(:.+)$/);
-        const [_, start, domain, end] = match;
-        result = `${start}@${ipStr}${end}\n\n`;
+        if (match) {
+            const [_, start, domain, end] = match;
+            result = `${start}@${ipStr}${end}\n\n`;
+        }
+    } else if (isTrojan) {
+        ipStr = ip.kind() === 'ipv6' ? `[${ipStr}]` : ipStr;
+        const match = inputConfig.match(/^(trojan:\/\/[^@]+)@([^:]+)(:.+)$/);
+        if (match) {
+            const [_, start, domain, end] = match;
+            result = `${start}@${ipStr}${end}\n\n`;
+        }
     }
 
     return result;
 }
+
 
 function displayResult(count) {
     const copyButton = document.getElementById('copyButton');
